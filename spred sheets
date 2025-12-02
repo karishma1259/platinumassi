@@ -1,0 +1,22 @@
+ PART C — EXCEL (SPREADSHEET SOLUTIONS)
+1) Fill ticket_created_at in feedbacks sheet
+Use VLOOKUP in feedbacks sheet:
+=VLOOKUP(A2, ticket!E:B, 2, FALSE)
+Explanation:
+•	A2 = cms_id in feedbacks
+•	ticket!E:B = table
+•	2 = created_at column
+•	FALSE = exact match
+________________________________________
+2)a) Same day created and closed
+Helper Column:
+=INT(B2)=INT(C2)
+If TRUE → Same day
+Count using:
+=COUNTIF(E:E, TRUE)
+________________________________________
+2)b) Same hour on same day
+Helper formula:
+=AND(INT(B2)=INT(C2), HOUR(B2)=HOUR(C2))
+Then:
+=COUNTIF(F:F, TRUE)
