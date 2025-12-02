@@ -1,0 +1,22 @@
+ PART D — PYTHON SOLUTIONS
+1) Convert minutes to hours & minutes
+minutes = int(input("Enter minutes: "))
+
+hours = minutes // 60
+remaining = minutes % 60
+
+print(f"{hours} hrs {remaining} minutes")
+________________________________________
+2) Remove duplicate characters (using loop only)
+text = input("Enter string: ")
+result = ""
+
+for ch in text:
+    if ch not in result:
+        result += ch
+
+print("Unique string:", result)
+Example
+Input: banana
+Output: ban
+
