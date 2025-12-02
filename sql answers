@@ -1,0 +1,154 @@
+ PART A — HOTEL MANAGEMENT SYSTEM (SQL SOLUTIONS)
+1) For every user, get the user_id and last booked room_no
+SELECT b.user_id, b.room_no
+FROM bookings b
+JOIN (
+    SELECT user_id, MAX(booking_date) AS last_booking
+    FROM bookings
+    GROUP BY user_id
+) t
+ON b.user_id = t.user_id
+AND b.booking_date = t.last_booking;
+________________________________________
+2) Booking_id and total billing amount of every booking created in November 2021
+SELECT 
+    bc.booking_id,
+    SUM(i.item_rate * bc.item_quantity) AS total_amount
+FROM booking_commercials bc
+JOIN items i
+    ON bc.item_id = i.item_id
+WHERE MONTH(bc.bill_date) = 11 
+AND YEAR(bc.bill_date) = 2021
+GROUP BY bc.booking_id;
+________________________________________
+3) Bills raised in October 2021 with bill amount > 1000
+SELECT 
+    bc.bill_id,
+    SUM(i.item_rate * bc.item_quantity) AS bill_amount
+FROM booking_commercials bc
+JOIN items i
+    ON bc.item_id = i.item_id
+WHERE MONTH(bc.bill_date) = 10
+AND YEAR(bc.bill_date) = 2021
+GROUP BY bc.bill_id
+HAVING SUM(i.item_rate * bc.item_quantity) > 1000;
+________________________________________
+4) Most and Least ordered item each month of 2021
+WITH monthly_items AS
+(
+   SELECT 
+      MONTH(bc.bill_date) AS month,
+      bc.item_id,
+      SUM(bc.item_quantity) AS total_quantity
+   FROM booking_commercials bc
+   WHERE YEAR(bc.bill_date)=2021
+   GROUP BY MONTH(bc.bill_date), bc.item_id
+),
+ranked_items AS
+(
+   SELECT *,
+   RANK() OVER(PARTITION BY month ORDER BY total_quantity DESC) AS r_max,
+   RANK() OVER(PARTITION BY month ORDER BY total_quantity ASC) AS r_min
+   FROM monthly_items
+)
+SELECT *
+FROM ranked_items
+WHERE r_max = 1 OR r_min = 1;
+________________________________________
+5) Customers with 2nd Highest bill every month in 2021
+WITH bill_values AS
+(
+  SELECT 
+     MONTH(bc.bill_date) AS month,
+     b.user_id,
+     bc.bill_id,
+     SUM(i.item_rate * bc.item_quantity) AS total
+  FROM booking_commercials bc
+  JOIN bookings b ON bc.booking_id = b.booking_id
+  JOIN items i ON bc.item_id = i.item_id
+  WHERE YEAR(bc.bill_date)=2021
+  GROUP BY MONTH(bc.bill_date), b.user_id, bc.bill_id
+),
+ranked_bills AS
+(
+  SELECT *,
+         DENSE_RANK() OVER(PARTITION BY month ORDER BY total DESC) AS rnk
+  FROM bill_values
+)
+SELECT *
+FROM ranked_bills
+WHERE rnk = 2;
+________________________________________
+ PART B — CLINIC MANAGEMENT SYSTEM (SQL SOLUTIONS)
+1) Revenue from each sales channel in a given year
+SELECT sales_channel,
+       SUM(amount) AS total_revenue
+FROM clinic_sales
+WHERE YEAR(datetime) = 2021
+GROUP BY sales_channel;
+________________________________________
+2) Top 10 most valuable customers in a given year
+SELECT uid,
+       SUM(amount) AS total_spent
+FROM clinic_sales
+WHERE YEAR(datetime) = 2021
+GROUP BY uid
+ORDER BY total_spent DESC
+LIMIT 10;
+________________________________________
+3) Month-wise Revenue, Expense, Profit, Status
+WITH revenue AS
+(
+   SELECT MONTH(datetime) AS month,
+          SUM(amount) AS total_rev
+   FROM clinic_sales
+   WHERE YEAR(datetime)=2021
+   GROUP BY MONTH(datetime)
+),
+expense AS
+(
+   SELECT MONTH(datetime) AS month,
+          SUM(amount) AS total_exp
+   FROM expenses
+   WHERE YEAR(datetime)=2021
+   GROUP BY MONTH(datetime)
+)
+SELECT 
+   r.month,
+   r.total_rev,
+   e.total_exp,
+   (r.total_rev - e.total_exp) AS profit,
+   CASE
+      WHEN (r.total_rev - e.total_exp) > 0 THEN 'Profitable'
+      ELSE 'Not Profitable'
+   END AS status
+FROM revenue r
+JOIN expense e ON r.month = e.month;
+________________________________________
+4) For each city, most profitable clinic for a given month
+SELECT c.city, s.cid, SUM(s.amount) AS profit
+FROM clinic_sales s
+JOIN clinics c ON s.cid = c.cid
+WHERE MONTH(datetime) = 9 
+GROUP BY c.city, s.cid
+ORDER BY profit DESC;
+(Use RANK() if you want strictly top one per city)
+________________________________________
+5) For each state, 2nd least profitable clinic
+WITH clinic_profit AS
+(
+  SELECT c.state, s.cid, SUM(s.amount) AS profit
+  FROM clinic_sales s
+  JOIN clinics c ON s.cid = c.cid
+  WHERE MONTH(s.datetime) = 9
+  GROUP BY c.state, s.cid
+),
+ranked AS
+(
+  SELECT *,
+         DENSE_RANK() OVER(PARTITION BY state ORDER BY profit ASC) AS rnk
+  FROM clinic_profit
+)
+SELECT *
+FROM ranked
+WHERE rnk = 2;
